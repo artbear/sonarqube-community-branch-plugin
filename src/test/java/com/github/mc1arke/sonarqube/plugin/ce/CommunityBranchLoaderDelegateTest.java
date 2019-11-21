@@ -35,7 +35,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -92,11 +92,12 @@ public class CommunityBranchLoaderDelegateTest {
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
 
         assertEquals(BranchType.SHORT, metadataHolder.getBranch().getType());
-        assertFalse(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
+        assertNull(metadataHolder.getBranch().getMergeBranchUuid());
         assertEquals("branchKey", metadataHolder.getBranch().getName());
         assertFalse(metadataHolder.getBranch().isLegacyFeature());
         assertFalse(metadataHolder.getBranch().isMain());
         assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
+        assertNull(metadataHolder.getBranch().getTargetBranchName());
     }
 
     @Test
@@ -144,12 +145,12 @@ public class CommunityBranchLoaderDelegateTest {
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
 
         assertEquals(BranchType.SHORT, metadataHolder.getBranch().getType());
-        assertTrue(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
-        assertEquals("projectUuid", metadataHolder.getBranch().getMergeBranchUuid().get());
+        assertEquals("projectUuid", metadataHolder.getBranch().getMergeBranchUuid());
         assertEquals("branch", metadataHolder.getBranch().getName());
         assertFalse(metadataHolder.getBranch().isLegacyFeature());
         assertFalse(metadataHolder.getBranch().isMain());
         assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
+        assertNull(metadataHolder.getBranch().getTargetBranchName());
     }
 
     @Test
@@ -166,6 +167,7 @@ public class CommunityBranchLoaderDelegateTest {
 
         ScannerReport.Metadata metadata =
                 ScannerReport.Metadata.getDefaultInstance().toBuilder().setBranchName("branch")
+                        .setTargetBranchName("targetBranchName")
                         .setBranchType(ScannerReport.Metadata.BranchType.LONG).build();
 
         DbClient dbClient = mock(DbClient.class);
@@ -176,12 +178,12 @@ public class CommunityBranchLoaderDelegateTest {
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
 
         assertEquals(BranchType.LONG, metadataHolder.getBranch().getType());
-        assertTrue(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
-        assertEquals("projectUuid", metadataHolder.getBranch().getMergeBranchUuid().get());
+        assertEquals("projectUuid", metadataHolder.getBranch().getMergeBranchUuid());
         assertEquals("branch", metadataHolder.getBranch().getName());
         assertFalse(metadataHolder.getBranch().isLegacyFeature());
         assertFalse(metadataHolder.getBranch().isMain());
         assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
+        assertEquals("targetBranchName", metadataHolder.getBranch().getTargetBranchName());
     }
 
     @Test
@@ -189,9 +191,8 @@ public class CommunityBranchLoaderDelegateTest {
         BranchDto branchDto = mock(BranchDto.class);
         when(branchDto.getBranchType()).thenReturn(BranchType.PULL_REQUEST);
         when(branchDto.getKey()).thenReturn("branchKey");
-        when(branchDto.getMergeBranchUuid()).thenReturn("mergeBranchUuid");
+        when(branchDto.getUuid()).thenReturn("mergeBranchUuid");
         when(branchDto.getProjectUuid()).thenReturn("projectUuid");
-        when(branchDto.getUuid()).thenReturn("branchUuid");
 
         BranchDao branchDao = mock(BranchDao.class);
         when(branchDao.selectByBranchKey(any(), eq("projectUuid"), eq("branch"))).thenReturn(Optional.of(branchDto));
@@ -199,6 +200,7 @@ public class CommunityBranchLoaderDelegateTest {
         ScannerReport.Metadata metadata =
                 ScannerReport.Metadata.getDefaultInstance().toBuilder().setBranchName("sourceBranch")
                         .setMergeBranchName("branch").setBranchType(ScannerReport.Metadata.BranchType.PULL_REQUEST)
+                        .setTargetBranchName("")
                         .build();
 
         DbClient dbClient = mock(DbClient.class);
@@ -209,12 +211,12 @@ public class CommunityBranchLoaderDelegateTest {
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
 
         assertEquals(BranchType.PULL_REQUEST, metadataHolder.getBranch().getType());
-        assertTrue(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
-        assertEquals("mergeBranchUuid", metadataHolder.getBranch().getMergeBranchUuid().get());
+        assertEquals("mergeBranchUuid", metadataHolder.getBranch().getMergeBranchUuid());
         assertEquals("sourceBranch", metadataHolder.getBranch().getName());
         assertFalse(metadataHolder.getBranch().isLegacyFeature());
         assertFalse(metadataHolder.getBranch().isMain());
         assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
+        assertEquals("branch", metadataHolder.getBranch().getTargetBranchName());
     }
 
     @Test
@@ -237,14 +239,6 @@ public class CommunityBranchLoaderDelegateTest {
 
 
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
-
-        assertEquals(BranchType.PULL_REQUEST, metadataHolder.getBranch().getType());
-        assertTrue(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
-        assertEquals("mergeBranchUuid", metadataHolder.getBranch().getMergeBranchUuid().get());
-        assertEquals("sourceBranch", metadataHolder.getBranch().getName());
-        assertFalse(metadataHolder.getBranch().isLegacyFeature());
-        assertFalse(metadataHolder.getBranch().isMain());
-        assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
     }
 
 
@@ -273,6 +267,7 @@ public class CommunityBranchLoaderDelegateTest {
         ScannerReport.Metadata metadata =
                 ScannerReport.Metadata.getDefaultInstance().toBuilder().setBranchName("branch")
                         .setBranchType(ScannerReport.Metadata.BranchType.SHORT).setMergeBranchName("mergeBranchName")
+                        .setTargetBranchName("targetBranchThatDoesNotMatchMergeBranch")
                         .build();
 
         DbClient dbClient = mock(DbClient.class);
@@ -283,12 +278,12 @@ public class CommunityBranchLoaderDelegateTest {
         new CommunityBranchLoaderDelegate(dbClient, metadataHolder).load(metadata);
 
         assertEquals(BranchType.SHORT, metadataHolder.getBranch().getType());
-        assertTrue(metadataHolder.getBranch().getMergeBranchUuid().isPresent());
-        assertEquals("targetBranchUuid", metadataHolder.getBranch().getMergeBranchUuid().get());
+        assertEquals("targetBranchUuid", metadataHolder.getBranch().getMergeBranchUuid());
         assertEquals("branch", metadataHolder.getBranch().getName());
         assertFalse(metadataHolder.getBranch().isLegacyFeature());
         assertFalse(metadataHolder.getBranch().isMain());
         assertFalse(metadataHolder.getBranch().supportsCrossProjectCpd());
+        assertEquals("targetBranchThatDoesNotMatchMergeBranch", metadataHolder.getBranch().getTargetBranchName());
     }
 
     @Test
